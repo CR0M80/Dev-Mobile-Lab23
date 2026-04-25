@@ -1,5 +1,6 @@
 package com.example.jnidemo;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.Button;
@@ -10,40 +11,68 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class MainActivity extends AppCompatActivity {
 
-    public native String helloFromJNI();
-    public native int    factorial(int n);
-    public native String reverseString(String s);
-    public native int    sumArray(int[] values);
+    public native boolean isDebugDetected();
+    public native String  helloFromJNI();
+    public native int     factorial(int n);
 
     static {
         System.loadLibrary("native-lib");
     }
+
+    private boolean environnementSur = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Button   btnHello      = findViewById(R.id.btnHello);
-        TextView tvHello       = findViewById(R.id.tvHello);
+        Button   btnCheck    = findViewById(R.id.btnCheck);
+        TextView tvStatus    = findViewById(R.id.tvStatus);
 
-        EditText etFactInput   = findViewById(R.id.etFactInput);
-        Button   btnFact       = findViewById(R.id.btnFact);
-        TextView tvFact        = findViewById(R.id.tvFact);
+        Button   btnHello    = findViewById(R.id.btnHello);
+        TextView tvHello     = findViewById(R.id.tvHello);
 
-        EditText etReverseInput = findViewById(R.id.etReverseInput);
-        Button   btnReverse     = findViewById(R.id.btnReverse);
-        TextView tvReverse      = findViewById(R.id.tvReverse);
+        EditText etFactInput = findViewById(R.id.etFactInput);
+        Button   btnFact     = findViewById(R.id.btnFact);
+        TextView tvFact      = findViewById(R.id.tvFact);
 
-        EditText etArrayInput  = findViewById(R.id.etArrayInput);
-        Button   btnArray      = findViewById(R.id.btnArray);
-        TextView tvArray       = findViewById(R.id.tvArray);
+        btnCheck.setOnClickListener(v -> {
+            boolean suspect = isDebugDetected();
 
-        btnHello.setOnClickListener(v ->
-                tvHello.setText(helloFromJNI())
-        );
+            if (suspect) {
+                environnementSur = false;
+                tvStatus.setText("Etat securite : environnement suspect detecte");
+                tvStatus.setTextColor(Color.RED);
+
+                btnHello.setEnabled(false);
+                etFactInput.setEnabled(false);
+                btnFact.setEnabled(false);
+                tvHello.setText("Fonction desactivee");
+                tvFact.setText("Calcul bloque");
+            } else {
+                environnementSur = true;
+                tvStatus.setText("Etat securite : OK");
+                tvStatus.setTextColor(Color.parseColor("#2E7D32"));
+
+                btnHello.setEnabled(true);
+                etFactInput.setEnabled(true);
+                btnFact.setEnabled(true);
+            }
+        });
+
+        btnHello.setOnClickListener(v -> {
+            if (!environnementSur) {
+                Toast.makeText(this, "Environnement non verifie", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            tvHello.setText(helloFromJNI());
+        });
 
         btnFact.setOnClickListener(v -> {
+            if (!environnementSur) {
+                Toast.makeText(this, "Environnement non verifie", Toast.LENGTH_SHORT).show();
+                return;
+            }
             String saisie = etFactInput.getText().toString().trim();
             if (TextUtils.isEmpty(saisie)) {
                 Toast.makeText(this, "Entrez un entier", Toast.LENGTH_SHORT).show();
@@ -57,38 +86,6 @@ public class MainActivity extends AppCompatActivity {
                 tvFact.setText("Erreur : depassement pour n = " + n);
             } else {
                 tvFact.setText("Factoriel de " + n + " = " + res);
-            }
-        });
-
-        btnReverse.setOnClickListener(v -> {
-            String saisie = etReverseInput.getText().toString();
-            if (TextUtils.isEmpty(saisie)) {
-                Toast.makeText(this, "Entrez un texte", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            tvReverse.setText("Texte inverse : " + reverseString(saisie));
-        });
-
-        btnArray.setOnClickListener(v -> {
-            String saisie = etArrayInput.getText().toString().trim();
-            if (TextUtils.isEmpty(saisie)) {
-                Toast.makeText(this, "Entrez des entiers separes par des virgules", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            try {
-                String[] parties = saisie.split(",");
-                int[] nombres = new int[parties.length];
-                for (int i = 0; i < parties.length; i++) {
-                    nombres[i] = Integer.parseInt(parties[i].trim());
-                }
-                int somme = sumArray(nombres);
-                if (somme < 0) {
-                    tvArray.setText("Erreur : code = " + somme);
-                } else {
-                    tvArray.setText("Somme de " + nombres.length + " element(s) = " + somme);
-                }
-            } catch (NumberFormatException e) {
-                Toast.makeText(this, "Format invalide. Ex: 10, 20, 30", Toast.LENGTH_SHORT).show();
             }
         });
     }
